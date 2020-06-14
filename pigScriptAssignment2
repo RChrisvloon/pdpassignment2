@@ -1,0 +1,38 @@
+/*Load the orders.csv*/
+ordersCSV = LOAD '/user/maria_dev/diplomacy/orders.csv' USING PigStorage(',')AS
+	(
+     game_id:chararray,
+     unit_id:chararray,
+     unit_order:chararray,
+     location:chararray,
+     target:chararray,
+     target_dest:chararray,
+     success:chararray,
+     reason:chararray,
+     turn_num:chararray);
+
+/*Remove the extra "" from the csv, code was explained in the lesson*/
+ordersCSV_Clean = FOREACH ordersCSV GENERATE
+            REPLACE($0, '"', '') AS (game_id:chararray),
+            REPLACE($1, '"', '') AS (unit_id:chararray),
+            REPLACE($2, '"', '') AS (unit_order:chararray),
+            REPLACE($3, '"', '') AS (location:chararray),
+            REPLACE($4, '"', '') AS (target:chararray),
+            REPLACE($5, '"', '') AS (target_dest:chararray),
+            REPLACE($6, '"', '') AS (success:chararray),
+            REPLACE($7, '"', '') AS (reason:chararray),
+            REPLACE($8, '"', '') AS (turn_num:chararray);
+
+/*Filter the csv to only get rows with location Holland*/
+ordersCSV_Filtered = FILTER ordersCSV_Clean BY target == 'Holland';
+
+/*Group the data by location with target being 'Holland'*/
+ordersCSV_Grouped = GROUP ordersCSV_Filtered BY (location, target);
+
+/*Count how many times Holland was target from the location*/
+ordersCSV_Counted = FOREACH ordersCSV_Grouped GENERATE FLATTEN(group) as (location, target), COUNT($1);
+
+/*Order the csv to an alphabetic list by location*/
+ordersCSV_Ordered = ORDER ordersCSV_Counted BY location;
+
+DUMP ordersCSV_Ordered;
